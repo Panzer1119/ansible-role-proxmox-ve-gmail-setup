@@ -1,2 +1,48 @@
 ---
-# tasks file for gmail-setup
+- name: "Update apt and install packages"
+  apt:
+    name:
+      - "libsasl2-modules"
+      - "mailutils"
+    update_cache: true
+
+- name: "Write credentials to sasl_passwd"
+  lineinfile:
+    path: "/etc/postfix/sasl_passwd"
+    create: true
+    line: "smtp.gmail.com {{ lookup('vault', 'secret/email') }}:{{ lookup('vault', 'secret/apppassword') }}"
+    state: "present"
+    insertafter: "EOF"
+    mode: "0600"
+    regexp: '^smtp.gmail.com .+:.+$'
+  no_log: true
+
+- name: "Hash sasl_passwd"
+  shell: "postmap hash:/etc/postfix/sasl_passwd"
+
+- name: "Add gmail configuration to main.cf"
+  blockinfile:
+    path: "/etc/postfix/main.cf"
+    create: true
+    block: |
+      relayhost = smtp.gmail.com:587
+      smtp_use_tls = yes
+      smtp_sasl_auth_enable = yes
+      smtp_sasl_security_options =
+      smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+      smtp_tls_CAfile = /etc/ssl/certs/Entrust_Root_Certification_Authority.pem
+      smtp_tls_session_cache_database = btree:/var/lib/postfix/smtp_tls_session_cache
+      smtp_tls_session_cache_timeout = 3600s
+    state: "present"
+    insertafter: "EOF"
+
+- name: "Comment out existing line containing just 'relayhost='"
+  replace:
+    path: "/etc/postfix/main.cf"
+    regexp: '^relayhost='
+    replace: '#relayhost='
+
+- name: "Reload postfix"
+  service:
+    name: "postfix"
+    state: "reloaded"
