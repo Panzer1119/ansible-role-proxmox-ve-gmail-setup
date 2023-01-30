@@ -1,2 +1,2 @@
 ---
-# defaults file for gmail-setup
+setup_postfix: true
