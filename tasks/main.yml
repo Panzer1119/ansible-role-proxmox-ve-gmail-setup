@@ -4,3 +4,7 @@
     file: "setup-postfix.yml"
   when: "setup_postfix"
 
+- name: "Set up mail header from replacement"
+  include_tasks:
+    file: "setup-header-from-replacement.yml"
+  when: "setup_header_from_replacement"

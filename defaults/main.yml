@@ -1,2 +1,3 @@
 ---
 setup_postfix: true
+setup_header_from_replacement: true

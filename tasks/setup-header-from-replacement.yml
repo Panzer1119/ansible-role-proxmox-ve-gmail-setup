@@ -1,0 +1,23 @@
+---
+- name: "Update apt and install postfix-pcre"
+  apt:
+    name: "postfix-pcre"
+    update_cache: true
+
+- name: "Write email to replace mail header from with to smtp_header_checks"
+  lineinfile:
+    path: "/etc/postfix/smtp_header_checks"
+    create: true
+    line: "/From:.*/ REPLACE From: {{ lookup('vault', 'secret/email') }}"
+    state: "present"
+    insertafter: "EOF"
+    regexp: '^\/From:\.\*\/ REPLACE From: .+$'
+
+- name: "Enable smtp_header_checks in main.cf"
+  lineinfile:
+    path: "/etc/postfix/main.cf"
+    create: true
+    line: "smtp_header_checks = regexp:/etc/postfix/header_check"
+    state: "present"
+    insertafter: "EOF"
+  notify: "Reload Postfix"
